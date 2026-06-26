@@ -1,0 +1,236 @@
+// Local dev → http://localhost:8000
+// Production → set window.API_BASE in a <script> tag, or replace this URL after deploy
+const API_BASE = window.API_BASE || 'http://localhost:8000';
+
+async function request(path, options = {}) {
+  const res = await fetch(API_BASE + path, {
+    headers: { 'Content-Type': 'application/json' },
+    ...options,
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ detail: res.statusText }));
+    const detail = Array.isArray(body.detail)
+      ? body.detail.map(e => e.msg || JSON.stringify(e)).join(', ')
+      : body.detail || `HTTP ${res.status}`;
+    throw new Error(detail);
+  }
+
+  return res.json();
+}
+
+// --- Toast ---
+
+function showToast(message, type = '') {
+  const toast = document.getElementById('toast');
+  toast.textContent = message;
+  toast.className = `toast ${type}`;
+  clearTimeout(toast._hideTimer);
+  toast._hideTimer = setTimeout(() => toast.classList.add('hidden'), 3000);
+}
+
+// --- Tab navigation ---
+
+const tabButtons = document.querySelectorAll('.tab-btn');
+const tabPanels  = document.querySelectorAll('.tab-panel');
+
+tabButtons.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const target = btn.dataset.tab;
+
+    tabButtons.forEach(b => b.classList.toggle('active', b === btn));
+    tabPanels.forEach(p => p.classList.toggle('active', p.id === `tab-${target}`));
+
+    if (target === 'students')    loadStudents();
+    if (target === 'add-student') loadBatches();
+    if (target === 'attendance')  loadAttendance();
+  });
+});
+
+// --- Students tab ---
+
+const grid           = document.getElementById('students-grid');
+const loadingEl      = document.getElementById('students-loading');
+const errorEl        = document.getElementById('students-error');
+
+function buildStudentCard(student) {
+  const initials = (student.First_Name[0] + student.Last_Name[0]).toUpperCase();
+
+  const card = document.createElement('div');
+  card.className = 'student-card';
+  card.innerHTML = `
+    <div class="card-avatar">${initials}</div>
+    <div class="card-name">${student.First_Name} ${student.Last_Name}</div>
+    <div class="card-meta">
+      <span>🆔 ${student.Student_ID}</span>
+      ${student.Batch_ID      ? `<span>📚 ${student.Batch_ID}</span>`       : ''}
+      ${student.Email_Address ? `<span>✉️ ${student.Email_Address}</span>` : ''}
+      ${student.Phone_Number  ? `<span>📞 ${student.Phone_Number}</span>`  : ''}
+    </div>
+    ${student.Batch_ID ? `<span class="badge">${student.Batch_ID}</span>` : ''}
+  `;
+  return card;
+}
+
+function renderStudents(students) {
+  grid.innerHTML = '';
+
+  if (!students.length) {
+    grid.innerHTML = '<p class="empty-state">No students found.</p>';
+    return;
+  }
+
+  students.forEach(s => grid.appendChild(buildStudentCard(s)));
+}
+
+async function loadStudents(name = '') {
+  loadingEl.classList.remove('hidden');
+  errorEl.classList.add('hidden');
+  grid.innerHTML = '';
+
+  const endpoint = name
+    ? `/students/search?name=${encodeURIComponent(name)}`
+    : '/students';
+
+  try {
+    const students = await request(endpoint);
+    renderStudents(students);
+  } catch (err) {
+    errorEl.textContent = `Failed to load students: ${err.message}`;
+    errorEl.classList.remove('hidden');
+    console.error(err);
+  } finally {
+    loadingEl.classList.add('hidden');
+  }
+}
+
+document.getElementById('btn-search').addEventListener('click', () => {
+  loadStudents(document.getElementById('search-name').value.trim());
+});
+
+document.getElementById('search-name').addEventListener('keydown', e => {
+  if (e.key === 'Enter') loadStudents(e.target.value.trim());
+});
+
+document.getElementById('btn-clear-search').addEventListener('click', () => {
+  document.getElementById('search-name').value = '';
+  loadStudents();
+});
+
+// --- Add student tab ---
+
+const form        = document.getElementById('add-student-form');
+const formError   = document.getElementById('form-error');
+const submitBtn   = document.getElementById('btn-add');
+const batchSelect = document.getElementById('f-batch');
+
+async function loadBatches() {
+  try {
+    const batches = await request('/batches');
+    batchSelect.innerHTML = '<option value="">-- Select Batch --</option>';
+    batches.forEach(b => {
+      const opt = document.createElement('option');
+      opt.value = b.Batch_ID;
+      opt.textContent = b.Batch_Name ? `${b.Batch_ID} — ${b.Batch_Name}` : b.Batch_ID;
+      batchSelect.appendChild(opt);
+    });
+  } catch (err) {
+    console.error('Could not load batches:', err);
+  }
+}
+
+form.addEventListener('submit', async e => {
+  e.preventDefault();
+  formError.classList.add('hidden');
+
+  const payload = {
+    First_Name:    form.First_Name.value.trim(),
+    Last_Name:     form.Last_Name.value.trim(),
+    Batch_ID:      form.Batch_ID.value || null,
+    Email_Address: form.Email_Address.value.trim(),
+    Phone_Number:  form.Phone_Number.value.trim(),
+  };
+
+  const missing = Object.entries(payload)
+    .filter(([k, v]) => k !== 'Batch_ID' && !v)
+    .map(([k]) => k.replace(/_/g, ' '));
+
+  if (missing.length) {
+    formError.textContent = `Please fill in: ${missing.join(', ')}`;
+    formError.classList.remove('hidden');
+    return;
+  }
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Adding…';
+
+  try {
+    const created = await request('/students', { method: 'POST', body: JSON.stringify(payload) });
+    showToast(`Student ${created.Student_ID} added successfully!`, 'success');
+    form.reset();
+    batchSelect.value = '';
+  } catch (err) {
+    formError.textContent = `Error: ${err.message}`;
+    formError.classList.remove('hidden');
+    showToast(err.message, 'error');
+    console.error(err);
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Add Student';
+  }
+});
+
+// --- Attendance tab ---
+
+const attLoading  = document.getElementById('attendance-loading');
+const attError    = document.getElementById('attendance-error');
+const attTable    = document.getElementById('attendance-table-wrap');
+const attTbody    = document.getElementById('attendance-tbody');
+const attEmpty    = document.getElementById('attendance-empty');
+
+function pctClass(pct) {
+  if (pct >= 75) return 'pct-high';
+  if (pct >= 50) return 'pct-mid';
+  return 'pct-low';
+}
+
+async function loadAttendance() {
+  attLoading.classList.remove('hidden');
+  attError.classList.add('hidden');
+  attTable.classList.add('hidden');
+  attEmpty.classList.add('hidden');
+
+  try {
+    const rows = await request('/attendance/summary');
+
+    if (!rows.length) {
+      attEmpty.classList.remove('hidden');
+      return;
+    }
+
+    attTbody.innerHTML = rows.map(r => `
+      <tr>
+        <td>${r.Student_ID}</td>
+        <td>${r.Name}</td>
+        <td>${r.total_classes}</td>
+        <td>${r.present}</td>
+        <td>${r.absent}</td>
+        <td class="${pctClass(r.attendance_percent)}">${r.attendance_percent}%</td>
+      </tr>
+    `).join('');
+
+    attTable.classList.remove('hidden');
+  } catch (err) {
+    attError.textContent = `Failed to load attendance: ${err.message}`;
+    attError.classList.remove('hidden');
+    console.error(err);
+  } finally {
+    attLoading.classList.add('hidden');
+  }
+}
+
+document.getElementById('btn-refresh-attendance').addEventListener('click', loadAttendance);
+
+// --- Init ---
+loadStudents();
+loadBatches();
