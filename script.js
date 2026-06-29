@@ -59,6 +59,15 @@ function buildStudentCard(student) {
   const card = document.createElement('div');
   card.className = 'student-card';
   card.innerHTML = `
+    <button class="btn-delete" title="Delete student" data-id="${student.Student_ID}">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="3 6 5 6 21 6"/>
+        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+        <path d="M10 11v6M14 11v6"/>
+        <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+      </svg>
+    </button>
     <div class="card-avatar">${initials}</div>
     <div class="card-name">${student.First_Name} ${student.Last_Name}</div>
     <div class="card-meta">
@@ -69,7 +78,23 @@ function buildStudentCard(student) {
     </div>
     ${student.Batch_ID ? `<span class="badge">${student.Batch_ID}</span>` : ''}
   `;
+
+  card.querySelector('.btn-delete').addEventListener('click', () => deleteStudent(student.Student_ID, card));
   return card;
+}
+
+async function deleteStudent(studentId, cardEl) {
+  if (!confirm('Are you sure you want to delete this student?')) return;
+  try {
+    await request(`/students/${studentId}`, { method: 'DELETE' });
+    cardEl.remove();
+    showToast('Student deleted successfully.', 'success');
+    if (!grid.querySelector('.student-card')) {
+      grid.innerHTML = '<p class="empty-state">No students found.</p>';
+    }
+  } catch (err) {
+    showToast(`Failed to delete: ${err.message}`, 'error');
+  }
 }
 
 function renderStudents(students) {

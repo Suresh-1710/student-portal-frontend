@@ -178,6 +178,28 @@ body {
   padding: 1.2rem 1.4rem;
   box-shadow: var(--shadow);
   transition: box-shadow 0.2s, transform 0.2s;
+  position: relative;
+}
+
+.btn-delete {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--muted);
+  padding: 0.3rem;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s, background 0.15s;
+}
+
+.btn-delete:hover {
+  color: var(--danger);
+  background: #fef2f2;
 }
 
 .student-card:hover {
