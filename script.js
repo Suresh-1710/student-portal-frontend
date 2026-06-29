@@ -58,29 +58,144 @@ function buildStudentCard(student) {
 
   const card = document.createElement('div');
   card.className = 'student-card';
+
   card.innerHTML = `
-    <button class="btn-delete" title="Delete student" data-id="${student.Student_ID}">
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="3 6 5 6 21 6"/>
-        <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-        <path d="M10 11v6M14 11v6"/>
-        <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-      </svg>
-    </button>
-    <div class="card-avatar">${initials}</div>
-    <div class="card-name">${student.First_Name} ${student.Last_Name}</div>
-    <div class="card-meta">
-      <span>🆔 ${student.Student_ID}</span>
-      ${student.Batch_ID      ? `<span>📚 ${student.Batch_ID}</span>`       : ''}
-      ${student.Email_Address ? `<span>✉️ ${student.Email_Address}</span>` : ''}
-      ${student.Phone_Number  ? `<span>📞 ${student.Phone_Number}</span>`  : ''}
+    <div class="card-actions">
+      <button class="btn-edit" title="Edit student">
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+        </svg>
+      </button>
+      <button class="btn-delete" title="Delete student">
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="3 6 5 6 21 6"/>
+          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+          <path d="M10 11v6M14 11v6"/>
+          <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+        </svg>
+      </button>
     </div>
-    ${student.Batch_ID ? `<span class="badge">${student.Batch_ID}</span>` : ''}
+
+    <div class="card-view">
+      <div class="card-avatar">${initials}</div>
+      <div class="card-name">${student.First_Name} ${student.Last_Name}</div>
+      <div class="card-meta">
+        <span>🆔 ${student.Student_ID}</span>
+        ${student.Batch_ID      ? `<span>📚 ${student.Batch_ID}</span>`      : ''}
+        ${student.Email_Address ? `<span>✉️ ${student.Email_Address}</span>` : ''}
+        ${student.Phone_Number  ? `<span>📞 ${student.Phone_Number}</span>`  : ''}
+      </div>
+      ${student.Batch_ID ? `<span class="badge">${student.Batch_ID}</span>` : ''}
+    </div>
+
+    <div class="card-edit hidden">
+      <div class="edit-row">
+        <input class="edit-input" name="First_Name" placeholder="First Name" value="${student.First_Name}" />
+        <input class="edit-input" name="Last_Name" placeholder="Last Name" value="${student.Last_Name}" />
+      </div>
+      <input class="edit-input" name="Email_Address" placeholder="Email" value="${student.Email_Address || ''}" />
+      <input class="edit-input" name="Phone_Number" placeholder="Phone" value="${student.Phone_Number || ''}" />
+      <select class="edit-input edit-batch" name="Batch_ID"></select>
+      <div class="edit-actions">
+        <button class="btn btn-ghost btn-cancel-edit">Cancel</button>
+        <button class="btn btn-primary btn-save-edit">Save</button>
+      </div>
+    </div>
   `;
 
+  const viewEl  = card.querySelector('.card-view');
+  const editEl  = card.querySelector('.card-edit');
+  const batchSel = card.querySelector('.edit-batch');
+
+  card.querySelector('.btn-edit').addEventListener('click', () => {
+    populateEditBatch(batchSel, student.Batch_ID);
+    viewEl.classList.add('hidden');
+    editEl.classList.remove('hidden');
+  });
+
+  card.querySelector('.btn-cancel-edit').addEventListener('click', () => {
+    viewEl.classList.remove('hidden');
+    editEl.classList.add('hidden');
+  });
+
+  card.querySelector('.btn-save-edit').addEventListener('click', () =>
+    saveStudent(student.Student_ID, card, viewEl, editEl)
+  );
+
   card.querySelector('.btn-delete').addEventListener('click', () => deleteStudent(student.Student_ID, card));
+
   return card;
+}
+
+async function populateEditBatch(selectEl, currentBatchId) {
+  if (selectEl.dataset.loaded) {
+    selectEl.value = currentBatchId || '';
+    return;
+  }
+  try {
+    const batches = await request('/batches');
+    selectEl.innerHTML = '<option value="">-- Select Batch --</option>';
+    batches.forEach(b => {
+      const opt = document.createElement('option');
+      opt.value = b.Batch_ID;
+      opt.textContent = b.Batch_Name ? `${b.Batch_ID} — ${b.Batch_Name}` : b.Batch_ID;
+      if (b.Batch_ID === currentBatchId) opt.selected = true;
+      selectEl.appendChild(opt);
+    });
+    selectEl.dataset.loaded = '1';
+  } catch (err) {
+    console.error('Could not load batches for edit:', err);
+  }
+}
+
+async function saveStudent(studentId, card, viewEl, editEl) {
+  const payload = {
+    First_Name:    editEl.querySelector('[name=First_Name]').value.trim(),
+    Last_Name:     editEl.querySelector('[name=Last_Name]').value.trim(),
+    Email_Address: editEl.querySelector('[name=Email_Address]').value.trim(),
+    Phone_Number:  editEl.querySelector('[name=Phone_Number]').value.trim(),
+    Batch_ID:      editEl.querySelector('[name=Batch_ID]').value || null,
+  };
+
+  if (!payload.First_Name || !payload.Last_Name || !payload.Email_Address || !payload.Phone_Number) {
+    showToast('Please fill in all required fields.', 'error');
+    return;
+  }
+
+  const saveBtn = editEl.querySelector('.btn-save-edit');
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Saving…';
+
+  try {
+    const updated = await request(`/students/${studentId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+
+    const newInitials = (updated.First_Name[0] + updated.Last_Name[0]).toUpperCase();
+    viewEl.querySelector('.card-avatar').textContent = newInitials;
+    viewEl.querySelector('.card-name').textContent = `${updated.First_Name} ${updated.Last_Name}`;
+    viewEl.querySelector('.card-meta').innerHTML = `
+      <span>🆔 ${updated.Student_ID}</span>
+      ${updated.Batch_ID      ? `<span>📚 ${updated.Batch_ID}</span>`      : ''}
+      ${updated.Email_Address ? `<span>✉️ ${updated.Email_Address}</span>` : ''}
+      ${updated.Phone_Number  ? `<span>📞 ${updated.Phone_Number}</span>`  : ''}
+    `;
+    const badge = viewEl.querySelector('.badge');
+    if (badge) badge.textContent = updated.Batch_ID || '';
+
+    viewEl.classList.remove('hidden');
+    editEl.classList.add('hidden');
+    showToast('Student updated successfully.', 'success');
+  } catch (err) {
+    showToast(`Failed to update: ${err.message}`, 'error');
+  } finally {
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Save';
+  }
 }
 
 async function deleteStudent(studentId, cardEl) {

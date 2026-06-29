@@ -181,10 +181,16 @@ body {
   position: relative;
 }
 
-.btn-delete {
+.card-actions {
   position: absolute;
   top: 0.75rem;
   right: 0.75rem;
+  display: flex;
+  gap: 0.3rem;
+}
+
+.btn-delete,
+.btn-edit {
   background: transparent;
   border: none;
   cursor: pointer;
@@ -200,6 +206,52 @@ body {
 .btn-delete:hover {
   color: var(--danger);
   background: #fef2f2;
+}
+
+.btn-edit:hover {
+  color: var(--brand);
+  background: var(--brand-light);
+}
+
+/* Inline edit form inside card */
+.card-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.edit-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.edit-input {
+  width: 100%;
+  padding: 0.4rem 0.65rem;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.83rem;
+  outline: none;
+  background: #fff;
+  transition: border-color 0.15s;
+}
+
+.edit-input:focus {
+  border-color: var(--brand);
+}
+
+.edit-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.edit-actions .btn {
+  flex: 1;
+  font-size: 0.82rem;
+  padding: 0.35rem 0.6rem;
 }
 
 .student-card:hover {
