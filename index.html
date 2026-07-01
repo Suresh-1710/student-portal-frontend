@@ -14,6 +14,8 @@
       <button class="tab-btn active" data-tab="students">Students</button>
       <button class="tab-btn" data-tab="add-student">Add Student</button>
       <button class="tab-btn" data-tab="attendance">Attendance</button>
+      <button class="tab-btn" data-tab="placement">Placements</button>
+      <button class="tab-btn" data-tab="batches">Batches</button>
     </nav>
   </header>
 
@@ -31,23 +33,18 @@
           <button id="btn-clear-search" class="btn btn-ghost">Clear</button>
         </div>
       </div>
-
       <div id="students-loading" class="skeleton-grid hidden">
         <div class="skeleton-card"></div>
         <div class="skeleton-card"></div>
         <div class="skeleton-card"></div>
       </div>
-
       <div id="students-error" class="error-banner hidden"></div>
       <div id="students-grid" class="student-grid"></div>
     </section>
 
     <!-- Add student form -->
     <section id="tab-add-student" class="tab-panel">
-      <div class="panel-header">
-        <h2>Add New Student</h2>
-      </div>
-
+      <div class="panel-header"><h2>Add New Student</h2></div>
       <form id="add-student-form" class="form-card" novalidate>
         <div class="form-row">
           <div class="form-group">
@@ -59,16 +56,14 @@
             <input id="f-last-name" name="Last_Name" type="text" placeholder="Last name" required />
           </div>
         </div>
-
         <div class="form-row">
           <div class="form-group">
-            <label for="f-batch">Batch <span class="req">*</span></label>
+            <label for="f-batch">Batch</label>
             <select id="f-batch" name="Batch_ID">
               <option value="">-- Select Batch --</option>
             </select>
           </div>
         </div>
-
         <div class="form-row">
           <div class="form-group">
             <label for="f-email">Email Address <span class="req">*</span></label>
@@ -79,9 +74,7 @@
             <input id="f-phone" name="Phone_Number" type="tel" placeholder="10-digit number" required />
           </div>
         </div>
-
         <div id="form-error" class="error-banner hidden"></div>
-
         <div class="form-actions">
           <button type="submit" id="btn-add" class="btn btn-primary">Add Student</button>
           <button type="reset" class="btn btn-ghost">Reset</button>
@@ -89,43 +82,188 @@
       </form>
     </section>
 
-    <!-- Attendance summary -->
+    <!-- Attendance -->
     <section id="tab-attendance" class="tab-panel">
       <div class="panel-header">
-        <h2>Attendance Summary</h2>
+        <h2>Attendance</h2>
         <button id="btn-refresh-attendance" class="btn btn-secondary">Refresh</button>
       </div>
 
-      <div id="attendance-loading" class="skeleton-grid hidden">
-        <div class="skeleton-card"></div>
-        <div class="skeleton-card"></div>
-        <div class="skeleton-card"></div>
+      <!-- Mark Attendance -->
+      <div class="form-card" style="margin-bottom:1.5rem;">
+        <h3 style="margin-bottom:1rem;font-size:1rem;">Mark Attendance</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Student <span class="req">*</span></label>
+            <select id="att-student"></select>
+          </div>
+          <div class="form-group">
+            <label>Batch <span class="req">*</span></label>
+            <select id="att-batch"></select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Date <span class="req">*</span></label>
+            <input id="att-date" type="date" />
+          </div>
+          <div class="form-group">
+            <label>Status <span class="req">*</span></label>
+            <select id="att-status">
+              <option value="Present">Present</option>
+              <option value="Absent">Absent</option>
+            </select>
+          </div>
+        </div>
+        <div id="att-mark-error" class="error-banner hidden"></div>
+        <button id="btn-mark-att" class="btn btn-primary">Mark Attendance</button>
       </div>
 
+      <!-- Summary table -->
+      <div id="attendance-loading" class="skeleton-grid hidden">
+        <div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div>
+      </div>
       <div id="attendance-error" class="error-banner hidden"></div>
-
       <div id="attendance-table-wrap" class="table-wrap hidden">
         <table id="attendance-table">
           <thead>
             <tr>
-              <th>Student ID</th>
-              <th>Name</th>
-              <th>Total Classes</th>
-              <th>Present</th>
-              <th>Absent</th>
-              <th>Attendance %</th>
+              <th>Student ID</th><th>Name</th><th>Total Classes</th>
+              <th>Present</th><th>Absent</th><th>Attendance %</th>
             </tr>
           </thead>
           <tbody id="attendance-tbody"></tbody>
         </table>
       </div>
-
       <p id="attendance-empty" class="empty-state hidden">No attendance records found.</p>
+    </section>
+
+    <!-- Placements -->
+    <section id="tab-placement" class="tab-panel">
+      <div class="panel-header">
+        <h2>Placements</h2>
+        <button id="btn-add-placement" class="btn btn-primary">+ Add Placement</button>
+      </div>
+
+      <!-- Add/Edit Placement Form -->
+      <div id="placement-form-wrap" class="form-card hidden" style="margin-bottom:1.5rem;">
+        <h3 id="placement-form-title" style="margin-bottom:1rem;font-size:1rem;">Add Placement</h3>
+        <input type="hidden" id="p-placement-id" />
+        <div class="form-row">
+          <div class="form-group">
+            <label>Student <span class="req">*</span></label>
+            <select id="p-student"></select>
+          </div>
+          <div class="form-group">
+            <label>Company Name <span class="req">*</span></label>
+            <input id="p-company" type="text" placeholder="Company name" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Job Title <span class="req">*</span></label>
+            <input id="p-jobtitle" type="text" placeholder="Job title" />
+          </div>
+          <div class="form-group">
+            <label>Annual Package (₹)</label>
+            <input id="p-package" type="number" placeholder="e.g. 500000" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Offer Date</label>
+            <input id="p-offerdate" type="date" />
+          </div>
+        </div>
+        <div id="placement-form-error" class="error-banner hidden"></div>
+        <div class="form-actions">
+          <button id="btn-save-placement" class="btn btn-primary">Save</button>
+          <button id="btn-cancel-placement" class="btn btn-ghost">Cancel</button>
+        </div>
+      </div>
+
+      <div id="placement-loading" class="skeleton-grid hidden">
+        <div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div>
+      </div>
+      <div id="placement-error" class="error-banner hidden"></div>
+      <div id="placement-table-wrap" class="table-wrap hidden">
+        <table>
+          <thead>
+            <tr>
+              <th>Student ID</th><th>Company</th><th>Job Title</th>
+              <th>Package (₹)</th><th>Offer Date</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="placement-tbody"></tbody>
+        </table>
+      </div>
+      <p id="placement-empty" class="empty-state hidden">No placement records found.</p>
+    </section>
+
+    <!-- Batch Management -->
+    <section id="tab-batches" class="tab-panel">
+      <div class="panel-header">
+        <h2>Batch Management</h2>
+        <button id="btn-add-batch" class="btn btn-primary">+ Add Batch</button>
+      </div>
+
+      <!-- Add/Edit Batch Form -->
+      <div id="batch-form-wrap" class="form-card hidden" style="margin-bottom:1.5rem;">
+        <h3 id="batch-form-title" style="margin-bottom:1rem;font-size:1rem;">Add Batch</h3>
+        <input type="hidden" id="b-batch-id-hidden" />
+        <div class="form-row">
+          <div class="form-group">
+            <label>Batch ID <span class="req">*</span></label>
+            <input id="b-id" type="text" placeholder="e.g. B-001" />
+          </div>
+          <div class="form-group">
+            <label>Batch Name <span class="req">*</span></label>
+            <input id="b-name" type="text" placeholder="Batch name" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Instructor Name</label>
+            <input id="b-instructor" type="text" placeholder="Instructor name" />
+          </div>
+          <div class="form-group">
+            <label>Start Date</label>
+            <input id="b-start" type="date" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>End Date</label>
+            <input id="b-end" type="date" />
+          </div>
+        </div>
+        <div id="batch-form-error" class="error-banner hidden"></div>
+        <div class="form-actions">
+          <button id="btn-save-batch" class="btn btn-primary">Save</button>
+          <button id="btn-cancel-batch" class="btn btn-ghost">Cancel</button>
+        </div>
+      </div>
+
+      <div id="batch-loading" class="skeleton-grid hidden">
+        <div class="skeleton-card"></div><div class="skeleton-card"></div><div class="skeleton-card"></div>
+      </div>
+      <div id="batch-error" class="error-banner hidden"></div>
+      <div id="batch-table-wrap" class="table-wrap hidden">
+        <table>
+          <thead>
+            <tr>
+              <th>Batch ID</th><th>Batch Name</th><th>Instructor</th>
+              <th>Start Date</th><th>End Date</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="batch-tbody"></tbody>
+        </table>
+      </div>
+      <p id="batch-empty" class="empty-state hidden">No batches found.</p>
     </section>
 
   </main>
 
-  
   <script>window.API_BASE = 'https://student-portal-backend-0cvs.onrender.com';</script>
   <script src="script.js"></script>
 </body>
